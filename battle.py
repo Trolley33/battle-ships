@@ -160,8 +160,8 @@ class Game:
         # GAME
         self.state = "select"
         self.selected = []
-        self.ship_no = 4
-        self.ship_rem = 4
+        self.ship_no = 21
+        self.ship_rem = 21
         # GUI
         self.info = tk.Label(text="Select your ship positions. (21)", font=("Verdana", 15, "bold"),
                              bg="turquoise3", fg="light cyan")
@@ -419,11 +419,11 @@ class Game:
         # CLEANUP
         self.state = "select"
         self.selected = []
-        self.ship_no = 4
-        self.ship_rem = 4
+        self.ship_no = 21
+        self.ship_rem = 21
         self.info.configure(text="Select ship positions. ({})".format(self.ship_no))
         self.board_but.configure(text="Show your board", state='disabled', command=lambda: self.toggle('b', 'm'))
-            self.show_but.configure(text="Show ships", state="disabled", command=lambda: self.toggle('s', True))
+        self.show_but.configure(text="Show ships", state="disabled", command=lambda: self.toggle('s', True))
         self.en_board_ref = [['' for v in range(11)] for c in range(11)]
         self.board_reference = [['' for v in range(11)] for c in range(11)]
         self.wipe_board()
