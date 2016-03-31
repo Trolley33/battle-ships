@@ -306,7 +306,7 @@ class Game:
                                 col2 = "firebrick1"
                             if board[y][x] == "m":
                                 col2 = "yellow2"
-                            self.board_gui[y][x].configure(text="", bg=col2, state=state)
+                            self.board_gui[y][x].configure(text="", bg=col2, state='disabled')
                     else:
                         self.board_gui[y][x].configure(text="", bg="grey{}".format(col1), state=state)
 
