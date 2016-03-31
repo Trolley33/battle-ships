@@ -6,7 +6,61 @@ import queue
 import select
 import time
 
+class ScrollFrame(tk.Frame):
+    def __init__(self):
+        tk.Frame.__init__(self)
 
+        self.messages = list()
+
+        self.canvas = tk.Canvas(bd=0, bg="#ffffff")
+        self.frame = tk.Frame(self.canvas, bg="#ffffff")
+        self.scrollbar = tk.Scrollbar(orient="vertical", command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        self.scrollbar.pack(side="right", fill="y")
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.canvas.create_window((4, 4), window=self.frame, anchor="nw", tags="self.frame")
+
+        self.frame.bind("<Configure>", self.on_configure)
+
+    def on_configure(self, event):
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+    def add_text(self, text):
+        if len(text) > 44:
+            print("Message size exceeded buffer.")
+            return
+        message_no = len(self.messages)
+        tk.Label(self.frame, text=text).grid(row=message_no, column=0, sticky="W")
+        self.messages.append(text)
+
+class ChatWindow:
+    def __init__(self, app):
+        # --GUI-- #
+        self.root = tk.Tk()
+        self.root.title("Chat Room!")
+
+        self.entry = tk.Entry(width=50)
+        self.submit = tk.Button(text="Send", command=self.send)
+        self.root.bind('<Return>', self.send)
+
+        self.entry.pack()
+        self.submit.pack()
+
+        self.chat_window = ScrollFrame()
+        self.chat_window.pack(side="top", fill="both", expand=True)
+
+        self.root.mainloop()
+
+        self.shutdown = True
+        self.s.close()
+        
+    def send(self):
+        msg  = self.entry.get()
+        if msg:
+            self.app.game.out_queue.put("*"+msg)
+            self.chat_window.add_text("You: "+msg)
+        
 class App:
     def __init__(self):
         self.root = tk.Tk()
@@ -38,7 +92,7 @@ class App:
         self.set_display(self.wait)
 
         self.c_s = "s"
-
+        
         t = threading.Thread(target=self.wait.listen)
         t.setDaemon(True)
         t.start()
@@ -163,6 +217,7 @@ class Game:
         self.ship_no = 21
         self.ship_rem = 21
         # GUI
+        self.chatwindow = ''
         self.info = tk.Label(text="Select your ship positions. (21)", font=("Verdana", 15, "bold"),
                              bg="turquoise3", fg="light cyan")
         self.action_but = tk.Button(text="Confirm?", state="disabled", command=self.action)
@@ -237,6 +292,8 @@ class Game:
                     if msg == "win":
                         self.app.popup("info", "You have won!")
                         self.reset()
+                    if msg[0] == "*":
+                        self.window.chat_window.add_text("Them: " + msg[1:])
                 elif self.state == "playing_c":
                     if self.app.c_s == "s":
                         self.state = "playing_p"
@@ -275,6 +332,7 @@ class Game:
                     continue
                 print(e)
                 break
+            
         c.close()
         self.disc_flag.clear()
         if self.app.c_s == "s":
@@ -429,6 +487,7 @@ class Game:
         self.wipe_board()
 
     def draw(self):
+        self.window = ChatWindow(self.app)
         self.info.grid(column=0, row=0, columnspan=11)
         for y, row in enumerate(self.board_gui):
             for x, cell in enumerate(row):
@@ -439,6 +498,8 @@ class Game:
         self.loop = True
 
     def undraw(self):
+        self.window.destroy()
+        self.window = ''
         self.info.grid_forget()
         for y, row in enumerate(self.board_gui):
             for x, cell in enumerate(row):
