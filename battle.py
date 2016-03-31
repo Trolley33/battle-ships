@@ -7,14 +7,14 @@ import select
 import time
 
 class ScrollFrame(tk.Frame):
-    def __init__(self):
-        tk.Frame.__init__(self)
+    def __init__(self, root, **kwargs):
+        tk.Frame.__init__(self, root, **kwargs)
 
         self.messages = list()
 
-        self.canvas = tk.Canvas(bd=0, bg="#ffffff")
+        self.canvas = tk.Canvas(root, bd=0, bg="#ffffff")
         self.frame = tk.Frame(self.canvas, bg="#ffffff")
-        self.scrollbar = tk.Scrollbar(orient="vertical", command=self.canvas.yview)
+        self.scrollbar = tk.Scrollbar(root, orient="vertical", command=self.canvas.yview)
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
 
         self.scrollbar.pack(side="right", fill="y")
@@ -36,24 +36,22 @@ class ScrollFrame(tk.Frame):
 
 class ChatWindow:
     def __init__(self, app):
+        self.app = app
         # --GUI-- #
         self.root = tk.Tk()
         self.root.title("Chat Room!")
 
-        self.entry = tk.Entry(width=50)
-        self.submit = tk.Button(text="Send", command=self.send)
+        self.entry = tk.Entry(self.root, width=50)
+        self.submit = tk.Button(self.root, text="Send", command=self.send)
         self.root.bind('<Return>', self.send)
 
         self.entry.pack()
         self.submit.pack()
 
-        self.chat_window = ScrollFrame()
+        self.chat_window = ScrollFrame(self.root)
         self.chat_window.pack(side="top", fill="both", expand=True)
 
         self.root.mainloop()
-
-        self.shutdown = True
-        self.s.close()
         
     def send(self):
         msg  = self.entry.get()
@@ -204,10 +202,11 @@ class Game:
         # NETWORK
         self.in_queue = queue.Queue()
         self.out_queue = queue.Queue()
+        self.chat_queue = queue.Queue()
         self.disc_flag = threading.Event()
         # MISC
         self.loop = False
-
+        self.window = threading.Thread(target=self.start_chat)
         self.th = threading.Thread(target=self.fixed_update)
         self.th.setDaemon(True)
         self.th.start()
@@ -293,7 +292,7 @@ class Game:
                         self.app.popup("info", "You have won!")
                         self.reset()
                     if msg[0] == "*":
-                        self.window.chat_window.add_text("Them: " + msg[1:])
+                        self.chat_queue.put("Them: " + msg[1:])
                 elif self.state == "playing_c":
                     if self.app.c_s == "s":
                         self.state = "playing_p"
@@ -487,7 +486,7 @@ class Game:
         self.wipe_board()
 
     def draw(self):
-        self.window = ChatWindow(self.app)
+        self.window.start()
         self.info.grid(column=0, row=0, columnspan=11)
         for y, row in enumerate(self.board_gui):
             for x, cell in enumerate(row):
@@ -498,8 +497,6 @@ class Game:
         self.loop = True
 
     def undraw(self):
-        self.window.destroy()
-        self.window = ''
         self.info.grid_forget()
         for y, row in enumerate(self.board_gui):
             for x, cell in enumerate(row):
@@ -508,5 +505,12 @@ class Game:
         self.show_but.grid_forget()
         self.board_but.grid_forget()
         self.loop = False
+
+    def start_chat(self):
+        self.c = ChatWindow(self.app)
+        while 1:
+            if not self.chat_queue.empty():
+                m = self.chat_queue.get()
+                self.c.chat_window.add_text(m)
 
 Main = App()
